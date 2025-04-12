@@ -3,19 +3,37 @@
 #include <sqlite3.h>
 #include <SFML/Graphics.hpp>
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #include <chrono>
 #include <thread>
 #include <ctime>
 
 using json = nlohmann::json;
 
-// Schwab API credentials (replace with yours)
-const std::string APP_KEY = "your_app_key";
-const std::string APP_SECRET = "your_app_secret";
-std::string ACCESS_TOKEN = "your_initial_token";
-std::string REFRESH_TOKEN = "your_initial_refresh_token";
+// Load credentials from .env
+std::string loadEnv(const std::string& key) {
+    std::ifstream file(".env");
+    std::string line, value;
+    while (std::getline(file, line)) {
+        if (line.find(key + "=") == 0) {
+            value = line.substr(key.length() + 1);
+            break;
+        }
+    }
+    return value;
+}
+
+std::string APP_KEY = loadEnv("APP_KEY");
+std::string APP_SECRET = loadEnv("APP_SECRET");
+std::string ACCESS_TOKEN = loadEnv("ACCESS_TOKEN");
+std::string REFRESH_TOKEN = loadEnv("REFRESH_TOKEN");
 
 bool refreshToken(httplib::Client& client) {
+    if (APP_KEY.empty() || APP_SECRET.empty() || REFRESH_TOKEN.empty()) {
+        std::cerr << "Missing credentials\n";
+        return false;
+    }
     auto res = client.Post(
         "/v1/oauth/token",
         "grant_type=refresh_token&refresh_token=" + REFRESH_TOKEN,
@@ -27,6 +45,12 @@ bool refreshToken(httplib::Client& client) {
         json j = json::parse(res->body);
         ACCESS_TOKEN = j["access_token"].get<std::string>();
         REFRESH_TOKEN = j["refresh_token"].get<std::string>();
+        // Update .env
+        std::ofstream env(".env");
+        env << "APP_KEY=" << APP_KEY << "\n";
+        env << "APP_SECRET=" << APP_SECRET << "\n";
+        env << "ACCESS_TOKEN=" << ACCESS_TOKEN << "\n";
+        env << "REFRESH_TOKEN=" << REFRESH_TOKEN << "\n";
         std::cout << "Token refreshed\n";
         return true;
     }
@@ -79,7 +103,7 @@ int storePrice(sqlite3* db, double price) {
     auto now = std::chrono::system_clock::now();
     auto now_c = std::chrono::system_clock::to_time_t(now);
     char timestamp[20];
-    std::strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", std::localtime(&now_c));
+    std::strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%:M:%S", std::localtime(&now_c));
 
     sqlite3_stmt* stmt;
     const char* sql = "INSERT INTO prices (timestamp, price) VALUES (?, ?);";
