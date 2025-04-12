@@ -1,5 +1,19 @@
+# Project-specific
 node_modules/
 *.db
-*.o
 corn_chart
 .env
+
+# C++ build artifacts
+*.o
+*.obj
+*.slo
+*.lo
+*.gch
+*.pch
+*.so
+*.dylib
+*.dll
+*.d
+*.mod
+*.smod
