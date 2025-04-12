@@ -1,0 +1,4 @@
+node_modules/
+*.db
+*.o
+corn_chart
