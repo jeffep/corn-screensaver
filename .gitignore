@@ -3,6 +3,9 @@ node_modules/
 *.db
 corn_chart
 .env
+schwab_callback.py
+*.log
+
 
 # C++ build artifacts
 *.o
